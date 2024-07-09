@@ -21,7 +21,7 @@ public class Vehicle extends BaseEntity {
     private String number;
 
     @Column(name = "driver_name", length = 100, nullable = false)
-    private String driver_name;
+    private String driverName;
 
     @Column(name = "make", length = 100, nullable = false)
     private String make;

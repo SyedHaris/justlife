@@ -31,7 +31,7 @@ public class CleaningProfessional extends BaseEntity {
     private String email;
 
     @Column(name = "image_url")
-    private String image_url;
+    private String imageUrl;
 
     @Column(name = "rating")
     private Double rating;
@@ -40,6 +40,6 @@ public class CleaningProfessional extends BaseEntity {
     @JoinColumn(name = "vehicle_id")
     private Vehicle vehicle;
 
-    @ManyToMany(mappedBy = "cleaning_professionals")
+    @ManyToMany(mappedBy = "cleaningProfessionals")
     private Set<Booking> bookings = new LinkedHashSet<>();
 }

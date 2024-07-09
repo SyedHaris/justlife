@@ -1,6 +1,5 @@
 package com.example.justlife.model;
 
-import com.example.justlife.enums.Day;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,6 +10,7 @@ import jakarta.persistence.Id;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.DayOfWeek;
 import java.time.LocalTime;
 
 @Entity
@@ -23,15 +23,15 @@ public class ScheduleConfiguration extends BaseEntity {
     private Long id;
 
     @Column(name = "start_time", nullable = false)
-    private LocalTime start_time;
+    private LocalTime startTime;
 
     @Column(name = "end_time", nullable = false)
-    private LocalTime end_time;
+    private LocalTime endTime;
 
     @Column(name = "break_duration_minutes", nullable = false)
-    private Integer break_duration_minutes;
+    private Integer breakDurationMinutes;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "holiday")
-    private Day holiday;
+    private DayOfWeek holiday;
 }

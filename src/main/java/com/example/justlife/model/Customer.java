@@ -30,5 +30,5 @@ public class Customer extends BaseEntity {
     private String address;
 
     @Column(name = "image_url")
-    private String image_url;
+    private String imageUrl;
 }
