@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -28,4 +30,9 @@ public class BookedSlot extends BaseEntity {
 
     @Column(name = "end_time", nullable = false)
     private LocalTime end_time;
+
+    @OneToOne(orphanRemoval = true)
+    @JoinColumn(name = "booking_id")
+    private Booking booking;
+
 }
