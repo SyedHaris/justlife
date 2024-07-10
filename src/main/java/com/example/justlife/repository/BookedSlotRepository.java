@@ -11,12 +11,14 @@ import java.util.List;
 public interface BookedSlotRepository extends JpaRepository<BookedSlot, Long> {
 
     @Query("""
-            FROM BookedSlot b JOIN b.cleaningProfessional cp
-            WHERE cp.id IN (:cleanerProfessionalIds)
+            FROM BookedSlot b WHERE  (:id IS NULL OR b.booking.id != :id)
+            AND b.cleaningProfessional.id IN (:cleanerProfessionalIds)
             AND b.date = :date
-            AND ((startTime > :startTime
-            AND endTime <= :endTime) OR startTime = :endTime)
+            AND ((b.startTime >= :startTime
+            AND b.endTime <= :endTime) OR b.startTime = :endTime)
             """)
-    List<BookedSlot> findBookedCleanerSlotsInDateTimeRange(LocalDate date, LocalTime startTime, LocalTime endTime, List<Long> cleanerProfessionalIds);
+    List<BookedSlot> findBookedCleanerSlotsInDateTimeRange(LocalDate date, LocalTime startTime, LocalTime endTime, List<Long> cleanerProfessionalIds, Long id);
+
+    List<BookedSlot> findByBookingId(Long id);
 
 }
