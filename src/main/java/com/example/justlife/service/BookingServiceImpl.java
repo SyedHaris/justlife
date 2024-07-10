@@ -7,6 +7,7 @@ import com.example.justlife.dto.response.UpdateBookingResponseDto;
 import com.example.justlife.enums.BookingStatus;
 import com.example.justlife.exception.BookingException;
 import com.example.justlife.exception.CustomerNotFoundException;
+import com.example.justlife.exception.HolidayException;
 import com.example.justlife.model.BookedSlot;
 import com.example.justlife.model.Booking;
 import com.example.justlife.model.CleaningProfessional;
@@ -16,7 +17,6 @@ import com.example.justlife.repository.BookedSlotRepository;
 import com.example.justlife.repository.BookingRepository;
 import com.example.justlife.repository.CleaningProfessionalRepository;
 import com.example.justlife.repository.CustomerRepository;
-import com.example.justlife.repository.ScheduleConfigurationRepository;
 import com.example.justlife.util.Helper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,16 +30,16 @@ import java.util.Set;
 
 @Service
 public class BookingServiceImpl implements BookingService {
-    private final ScheduleConfigurationRepository scheduleConfigurationRepository;
+    private final ScheduleConfigurationService scheduleConfigurationService;
     private final CleaningProfessionalRepository cleaningProfessionalRepository;
     private final BookedSlotRepository bookedSlotRepository;
     private final BookingRepository bookingRepository;
     private final CustomerRepository customerRepository;
     private final Helper helper;
 
-    public BookingServiceImpl(ScheduleConfigurationRepository scheduleConfigurationRepository,
+    public BookingServiceImpl(ScheduleConfigurationService scheduleConfigurationService,
                               CleaningProfessionalRepository cleaningProfessionalRepository, BookedSlotRepository bookedSlotRepository, BookingRepository bookingRepository, CustomerRepository customerRepository, Helper helper) {
-        this.scheduleConfigurationRepository = scheduleConfigurationRepository;
+        this.scheduleConfigurationService = scheduleConfigurationService;
         this.cleaningProfessionalRepository = cleaningProfessionalRepository;
         this.bookedSlotRepository = bookedSlotRepository;
         this.bookingRepository = bookingRepository;
@@ -49,55 +49,55 @@ public class BookingServiceImpl implements BookingService {
 
     @Transactional
     @Override
-    public CreateBookingResponseDto create(CreateBookingRequestDto createBookingRequestDto,
+    public CreateBookingResponseDto create(CreateBookingRequestDto requestDto,
                                            Long customerId) {
-        var scheduleConfiguration = getScheduleConfiguration();
+        var scheduleConfiguration = scheduleConfigurationService.getScheduleConfiguration();
         var customer = customerRepository.findById(customerId).orElseThrow(
                 () -> new CustomerNotFoundException("Customer doesn't exist")
         );
 
         // Check not holiday
-        if (isHoliday(createBookingRequestDto.date(), scheduleConfiguration))
-            throw new BookingException("Booking can't be created on a holiday");
+        if (scheduleConfigurationService.isHoliday(requestDto.date(), scheduleConfiguration))
+            throw new HolidayException();
 
         // Check all cleaning professionals belong to the same vehicle
-        var cleaningProfessionals = cleaningProfessionalRepository.findByIdIn(createBookingRequestDto.cleaningProfessionals());
+        var cleaningProfessionals = cleaningProfessionalRepository.findByIdIn(requestDto.cleaningProfessionals());
         if (cleaningProfessionals.size() > 1 && isVehicleNotValid(cleaningProfessionals))
             throw new BookingException("Provided cleaning professionals are not valid for this booking");
 
         // start time and end time are not out of range
-        var startTime = helper.convertStringToLocalTime(createBookingRequestDto.startTime());
-        var endTime = helper.calculateEndTimeFromDurationAndStartTime(startTime, createBookingRequestDto.duration());
+        var startTime = helper.convertStringToLocalTime(requestDto.startTime());
+        var endTime = helper.calculateEndTimeFromDurationAndStartTime(startTime, requestDto.duration());
         if (isTimeOutOfRange(startTime, endTime, scheduleConfiguration))
             throw new BookingException("Provided provided time slot is invalid");
 
         // Check slot is not in booked slots
-        if (isSlotNotAvailable(createBookingRequestDto.date(), startTime, endTime,
-                                createBookingRequestDto.cleaningProfessionals(), scheduleConfiguration, null))
+        if (getBookedSlots(requestDto.date(), startTime, endTime,
+                                requestDto.cleaningProfessionals(), null).size() > 0)
             throw new BookingException("Slot not available");
 
         // Create booking
-        var booking = saveBooking(createBookingRequestDto, cleaningProfessionals, startTime, endTime, customer);
-        saveBookedSlots(createBookingRequestDto, cleaningProfessionals, startTime, endTime, booking, scheduleConfiguration.getBreakDurationMinutes());
+        var booking = saveBooking(requestDto, cleaningProfessionals, startTime, endTime, customer);
+        saveBookedSlots(requestDto, cleaningProfessionals, startTime, endTime, booking, scheduleConfiguration.getBreakDurationMinutes());
 
         return new CreateBookingResponseDto(booking.getId());
     }
 
     @Transactional
     @Override
-    public UpdateBookingResponseDto update(UpdateBookingRequestDto updateBookingRequestDto, Long customerId, Long bookingId) {
+    public UpdateBookingResponseDto update(UpdateBookingRequestDto requestDto, Long customerId, Long bookingId) {
         // Check booking exists
         var booking = bookingRepository.findFirstByIdAndCustomerId(bookingId, customerId)
                                        .orElseThrow(() -> new BookingException("Booking does not exist"));
-        var scheduleConfiguration = getScheduleConfiguration();
+        var scheduleConfiguration = scheduleConfigurationService.getScheduleConfiguration();
 
         // Check not holiday
-        if (isHoliday(updateBookingRequestDto.date(), scheduleConfiguration))
+        if (scheduleConfigurationService.isHoliday(requestDto.date(), scheduleConfiguration))
             throw new BookingException("Booking can't be created on a holiday");
 
         // start time and end time are not out of range
-        var startTime = helper.convertStringToLocalTime(updateBookingRequestDto.startTime());
-        var endTime = helper.calculateEndTimeFromDurationAndStartTime(startTime, updateBookingRequestDto.duration());
+        var startTime = helper.convertStringToLocalTime(requestDto.startTime());
+        var endTime = helper.calculateEndTimeFromDurationAndStartTime(startTime, requestDto.duration());
         if (isTimeOutOfRange(startTime, endTime, scheduleConfiguration))
             throw new BookingException("Provided provided time slot is invalid");
 
@@ -106,25 +106,36 @@ public class BookingServiceImpl implements BookingService {
                                              .stream()
                                              .map(CleaningProfessional::getId)
                                              .toList();
-        if (isSlotNotAvailable(updateBookingRequestDto.date(), startTime, endTime,
-                                cleaningProfessionalIds, scheduleConfiguration, booking.getId()))
+        if (getBookedSlots(requestDto.date(), startTime, endTime,
+                                cleaningProfessionalIds, booking.getId()).size() > 0)
             throw new BookingException("Slot not available");
 
         // Update booking
-        booking.setDate(updateBookingRequestDto.date());
+        booking.setDate(requestDto.date());
         booking.setStartTime(startTime);
         booking.setEndTime(endTime);
         bookingRepository.save(booking);
 
         var bookingSlots = bookedSlotRepository.findByBookingId(booking.getId());
         bookingSlots.forEach(b -> {
-            b.setDate(updateBookingRequestDto.date());
+            b.setDate(requestDto.date());
             b.setStartTime(startTime);
             b.setEndTime(endTime);
         });
         bookedSlotRepository.saveAll(bookingSlots);
 
         return new UpdateBookingResponseDto(booking.getId(), booking.getDate(), booking.getStartTime().toString(), booking.getEndTime().toString());
+    }
+
+    @Override
+    public List<BookedSlot> getBookedSlots(LocalDate date, LocalTime startTime, LocalTime endTime,
+                                            List<Long> cleaningProfessionalIds, Long id) {
+        // Case for handling overlapping tasks
+        var startTimeWithOverlap = startTime.minusHours(1);
+        var endTimeWithOverlap = endTime.plusHours(1);
+
+        return bookedSlotRepository.findBookedCleanerSlotsInDateTimeRange(date, startTimeWithOverlap, endTimeWithOverlap,
+                startTime, cleaningProfessionalIds, id);
     }
 
     private void saveBookedSlots(CreateBookingRequestDto createBookingRequestDto,
@@ -161,17 +172,6 @@ public class BookingServiceImpl implements BookingService {
         return bookingRepository.save(booking);
     }
 
-    private ScheduleConfiguration getScheduleConfiguration() {
-        return scheduleConfigurationRepository.findAll()
-                                              .stream()
-                                              .findFirst()
-                                              .orElseThrow(() -> new BookingException("Booking can't be created"));
-    }
-
-    private boolean isHoliday(LocalDate date, ScheduleConfiguration scheduleConfiguration) {
-        return scheduleConfiguration.getHoliday().equals(date.getDayOfWeek());
-    }
-
     private boolean isVehicleNotValid(List<CleaningProfessional> cleaningProfessionals) {
         Set<Long> vehicleId = new HashSet<>();
         cleaningProfessionals.forEach(cp -> {
@@ -185,15 +185,5 @@ public class BookingServiceImpl implements BookingService {
         LocalTime configuredEndTime = scheduleConfiguration.getEndTime();
 
         return startTime.isBefore(configuredStartTime) || startTime.isAfter(configuredEndTime) || endTime.isAfter(configuredEndTime);
-    }
-
-    public boolean isSlotNotAvailable(LocalDate date, LocalTime startTime, LocalTime endTime,
-                                      List<Long> cleaningProfessionalIds, ScheduleConfiguration scheduleConfiguration, Long id) {
-        // Case for handling overlapping tasks
-        startTime = startTime.minusHours(1);
-        endTime = endTime.plusHours(1);
-
-        return bookedSlotRepository.findBookedCleanerSlotsInDateTimeRange(date, startTime, endTime,
-                                                                            cleaningProfessionalIds, id).size() > 0;
     }
 }

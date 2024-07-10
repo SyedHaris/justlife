@@ -29,15 +29,15 @@ public class BookingController {
     @PostMapping
     @ResponseStatus(value = HttpStatus.CREATED)
     public CreateBookingResponseDto create(
-            @RequestBody @Valid CreateBookingRequestDto createBookingRequestDto) {
-        return bookingService.create(createBookingRequestDto, CUSTOMER_ID);
+            @RequestBody @Valid CreateBookingRequestDto requestDto) {
+        return bookingService.create(requestDto, CUSTOMER_ID);
     }
 
     @PutMapping(path = "/{id}")
     @ResponseStatus(value = HttpStatus.OK)
     public UpdateBookingResponseDto create(
             @PathParam("id") Long bookingId,
-            @RequestBody @Valid UpdateBookingRequestDto updateBookingRequestDto) {
-        return bookingService.update(updateBookingRequestDto, CUSTOMER_ID, bookingId);
+            @RequestBody @Valid UpdateBookingRequestDto requestDto) {
+        return bookingService.update(requestDto, CUSTOMER_ID, bookingId);
     }
 }

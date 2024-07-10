@@ -12,13 +12,20 @@ public interface BookedSlotRepository extends JpaRepository<BookedSlot, Long> {
 
     @Query("""
             FROM BookedSlot b WHERE  (:id IS NULL OR b.booking.id != :id)
-            AND b.cleaningProfessional.id IN (:cleanerProfessionalIds)
+            AND (:cleanerProfessionalIds IS NULL OR b.cleaningProfessional.id IN (:cleanerProfessionalIds))
             AND b.date = :date
-            AND ((b.startTime >= :startTime
-            AND b.endTime <= :endTime) OR b.startTime = :endTime)
+            AND ((b.startTime >= :startTimeWithOverlap
+            AND b.endTime <= :endTimeWithOverlap) OR b.endTime = :startTime)
             """)
-    List<BookedSlot> findBookedCleanerSlotsInDateTimeRange(LocalDate date, LocalTime startTime, LocalTime endTime, List<Long> cleanerProfessionalIds, Long id);
+    List<BookedSlot> findBookedCleanerSlotsInDateTimeRange(LocalDate date, LocalTime startTimeWithOverlap, LocalTime endTimeWithOverlap, LocalTime startTime, List<Long> cleanerProfessionalIds, Long id);
 
     List<BookedSlot> findByBookingId(Long id);
+
+    @Query("""
+            FROM BookedSlot b WHERE b.cleaningProfessional.id = :cleaningProfessionalId
+            AND b.date = :date
+            ORDER BY b.startTime ASC
+            """)
+    List<BookedSlot> findByCleaningProfessionalIdAndDate(Long cleaningProfessionalId, LocalDate date);
 
 }
