@@ -1,7 +1,9 @@
 package com.example.justlife.fixture;
 
 import com.example.justlife.dto.request.CreateBookingRequestDto;
+import com.example.justlife.dto.request.UpdateBookingRequestDto;
 import com.example.justlife.dto.response.CreateBookingResponseDto;
+import com.example.justlife.dto.response.UpdateBookingResponseDto;
 import com.example.justlife.enums.BookingStatus;
 import com.example.justlife.model.BookedSlot;
 import com.example.justlife.model.Booking;
@@ -33,4 +35,10 @@ public class BookingFixture {
     public static final Booking booking = new Booking(1L, date, LocalTime.of(8, 30), LocalTime.of(10, 30), BookingStatus.PENDING, customer, Set.of(cleaningProfessional));
     public static final BookedSlot bookedSlots = new BookedSlot(1L, date, LocalTime.of(9, 0), LocalTime.of(11, 0), booking, cleaningProfessional);
     public static final CreateBookingResponseDto createBookingResponseDto = new CreateBookingResponseDto(10L);
+    public static final UpdateBookingRequestDto updateBookingRequestDto = new UpdateBookingRequestDto(date, "09:30", (short) 2);
+    public static final UpdateBookingRequestDto updateHolidayBookingRequestDto = new UpdateBookingRequestDto(holidayDate, "09:30", (short) 2);
+    public static final UpdateBookingRequestDto updateStartOutOfRangeBookingRequestDto = new UpdateBookingRequestDto(date, "07:30", (short) 2);
+    public static final UpdateBookingRequestDto updateEndOutOfRangeBookingRequestDto = new UpdateBookingRequestDto(date, "21:30", (short) 2);
+    public static final UpdateBookingResponseDto updateBookingResponseDto = new UpdateBookingResponseDto(1L, date, "9:30", "11:30");
+    public static final UpdateBookingRequestDto updateInvalidParamsBookingRequestDto = new UpdateBookingRequestDto(date, "07:30", (short) 8);
 }

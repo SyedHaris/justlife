@@ -88,12 +88,12 @@ public class BookingServiceImpl implements BookingService {
     public UpdateBookingResponseDto update(UpdateBookingRequestDto requestDto, Long customerId, Long bookingId) {
         // Check booking exists
         var booking = bookingRepository.findFirstByIdAndCustomerId(bookingId, customerId)
-                                       .orElseThrow(() -> new BookingException("Booking does not exist"));
+                                       .orElseThrow(() -> new BookingException("Booking doesn't exist"));
         var scheduleConfiguration = scheduleConfigurationService.getScheduleConfiguration();
 
         // Check not holiday
         if (scheduleConfigurationService.isHoliday(requestDto.date(), scheduleConfiguration))
-            throw new BookingException("Booking can't be created on a holiday");
+            throw new HolidayException();
 
         // start time and end time are not out of range
         var startTime = helper.convertStringToLocalTime(requestDto.startTime());
@@ -120,7 +120,7 @@ public class BookingServiceImpl implements BookingService {
         bookingSlots.forEach(b -> {
             b.setDate(requestDto.date());
             b.setStartTime(startTime);
-            b.setEndTime(endTime);
+            b.setEndTime(endTime.plusMinutes(scheduleConfiguration.getBreakDurationMinutes()));
         });
         bookedSlotRepository.saveAll(bookingSlots);
 
@@ -129,7 +129,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<BookedSlot> getBookedSlots(LocalDate date, LocalTime startTime, LocalTime endTime,
-                                            List<Long> cleaningProfessionalIds, Long id) {
+                                           List<Long> cleaningProfessionalIds, Long id) {
         // Case for handling overlapping tasks
         var startTimeWithOverlap = startTime.minusHours(1);
         var endTimeWithOverlap = endTime.plusHours(1);
