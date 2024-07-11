@@ -98,11 +98,11 @@ public class CleaningProfessionalServiceImpl implements  CleaningProfessionalSer
             while (!previousEndTime.equals(bks.getStartTime()) || previousEndTime.equals(scheduleEndTime)) {
                 previousEndTime = previousEndTime.plusMinutes(30);
             }
-            availableSlots.add(currentStartTime + ":" + previousEndTime);
+            availableSlots.add(currentStartTime + "-" + previousEndTime);
             previousEndTime = bks.getEndTime();
         }
         if (previousEndTime.isBefore(scheduleEndTime))
-            availableSlots.add(previousEndTime + ":" + scheduleEndTime);
+            availableSlots.add(previousEndTime + "-" + scheduleEndTime);
         return availableSlots;
     }
 }

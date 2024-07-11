@@ -4,7 +4,6 @@ import com.example.justlife.enums.BookingStatus;
 import com.example.justlife.exception.BookingException;
 import com.example.justlife.exception.CustomerNotFoundException;
 import com.example.justlife.exception.HolidayException;
-import com.example.justlife.fixture.BookingFixture;
 import com.example.justlife.model.BookedSlot;
 import com.example.justlife.model.Booking;
 import com.example.justlife.repository.BookedSlotRepository;
@@ -14,7 +13,6 @@ import com.example.justlife.repository.CustomerRepository;
 import com.example.justlife.service.BookingServiceImpl;
 import com.example.justlife.service.ScheduleConfigurationServiceImpl;
 import com.example.justlife.util.Helper;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,6 +28,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static com.example.justlife.fixture.BookingFixture.*;
+import static com.example.justlife.fixture.CleaningProfessionalFixture.cleaningProfessional;
+import static com.example.justlife.fixture.CleaningProfessionalFixture.cleaningProfessional2;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.times;
@@ -38,7 +40,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class BookingServiceImplTest {
-    private BookingServiceImpl bookingServiceImpl;
+    private BookingServiceImpl service;
     @Mock
     private ScheduleConfigurationServiceImpl scheduleConfigurationServiceImpl;
     @Mock
@@ -57,7 +59,7 @@ class BookingServiceImplTest {
 
     @BeforeEach
     void init_mocks() {
-        bookingServiceImpl = new BookingServiceImpl(
+        service = new BookingServiceImpl(
                 scheduleConfigurationServiceImpl,
                 cleaningProfessionalRepository,
                 bookedSlotRepository,
@@ -73,15 +75,15 @@ class BookingServiceImplTest {
         public void testBookingIsCreatedSuccessfully() {
 
             when(scheduleConfigurationServiceImpl.getScheduleConfiguration()).thenReturn(
-                    BookingFixture.configuration
+                    configuration
             );
 
             when(customerRepository.findById(any())).thenReturn(
-                    Optional.of(BookingFixture.customer)
+                    Optional.of(customer)
             );
 
             when(cleaningProfessionalRepository.findByIdIn(any())).thenReturn(
-                    List.of(BookingFixture.cleaningProfessional)
+                    List.of(cleaningProfessional)
             );
 
             when(bookedSlotRepository.findBookedCleanerSlotsInDateTimeRange(any(), any(),
@@ -90,150 +92,150 @@ class BookingServiceImplTest {
             );
 
             when(bookingRepository.save(any())).thenReturn(
-                    BookingFixture.booking
+                    booking
             );
 
-            var result = bookingServiceImpl.create(BookingFixture.createBookingRequestDto, 1L);
+            var result = service.create(createBookingRequestDto, 1L);
 
             verify(bookingRepository, times(1)).save(bookingCaptor.capture());
             verify(bookedSlotRepository, times(1)).saveAll(bookedSlotsCaptor.capture());
 
-            Assertions.assertEquals(1L, result.bookingId());
+            assertEquals(1L, result.bookingId());
 
             var createdBooking = bookingCaptor.getValue();
-            Assertions.assertEquals(BookingFixture.date, createdBooking.getDate());
-            Assertions.assertEquals(BookingStatus.PENDING, createdBooking.getStatus());
-            Assertions.assertEquals(1, createdBooking.getCleaningProfessionals().size());
-            Assertions.assertEquals(LocalTime.of(8, 30), createdBooking.getStartTime());
-            Assertions.assertEquals(LocalTime.of(10, 30), createdBooking.getEndTime());
+            assertEquals(date, createdBooking.getDate());
+            assertEquals(BookingStatus.PENDING, createdBooking.getStatus());
+            assertEquals(1, createdBooking.getCleaningProfessionals().size());
+            assertEquals(LocalTime.of(8, 30), createdBooking.getStartTime());
+            assertEquals(LocalTime.of(10, 30), createdBooking.getEndTime());
 
             var createdBookedSlot = bookedSlotsCaptor.getValue().get(0);
-            Assertions.assertEquals(BookingFixture.date, createdBookedSlot.getDate());
-            Assertions.assertEquals(LocalTime.of(8, 30), createdBookedSlot.getStartTime());
-            Assertions.assertEquals(LocalTime.of(11, 0), createdBookedSlot.getEndTime());
-            Assertions.assertEquals("test2@example.com", createdBookedSlot.getCleaningProfessional().getEmail());
+            assertEquals(date, createdBookedSlot.getDate());
+            assertEquals(LocalTime.of(8, 30), createdBookedSlot.getStartTime());
+            assertEquals(LocalTime.of(11, 0), createdBookedSlot.getEndTime());
+            assertEquals("test2@example.com", createdBookedSlot.getCleaningProfessional().getEmail());
         }
 
         @Test
         public void testExceptionIsThrownWhenInputDateIsHoliday() {
 
             when(scheduleConfigurationServiceImpl.getScheduleConfiguration()).thenReturn(
-                    BookingFixture.configuration
+                    configuration
             );
 
             when(scheduleConfigurationServiceImpl.isHoliday(any(), any())).thenCallRealMethod();
 
             when(customerRepository.findById(any())).thenReturn(
-                    Optional.of(BookingFixture.customer)
+                    Optional.of(customer)
             );
 
-            var exception = Assertions.assertThrows(
+            var exception = assertThrows(
                     HolidayException.class,
-                    () -> bookingServiceImpl.create(BookingFixture.createHolidayBookingRequestDto, 1L));
+                    () -> service.create(createHolidayBookingRequestDto, 1L));
 
-            Assertions.assertEquals("Booking can't be created on a holiday", exception.getMessage());
+            assertEquals("Booking can't be created on a holiday", exception.getMessage());
         }
 
         @Test
         public void testExceptionIsThrownWhenCustomerIdIsInvalid() {
 
             when(scheduleConfigurationServiceImpl.getScheduleConfiguration()).thenReturn(
-                    BookingFixture.configuration
+                    configuration
             );
 
             when(customerRepository.findById(any())).thenReturn(
                     Optional.empty()
             );
 
-            var exception = Assertions.assertThrows(
+            var exception = assertThrows(
                     CustomerNotFoundException.class,
-                    () -> bookingServiceImpl.create(BookingFixture.createBookingRequestDto, 1L));
+                    () -> service.create(createBookingRequestDto, 1L));
 
-            Assertions.assertEquals("Customer doesn't exist", exception.getMessage());
+            assertEquals("Customer doesn't exist", exception.getMessage());
         }
 
         @Test
         public void testExceptionIsThrownWhenStartTimeIsOutOfRange() {
 
             when(scheduleConfigurationServiceImpl.getScheduleConfiguration()).thenReturn(
-                    BookingFixture.configuration
+                    configuration
             );
 
             when(customerRepository.findById(any())).thenReturn(
-                    Optional.of(BookingFixture.customer)
+                    Optional.of(customer)
             );
 
-            var exception = Assertions.assertThrows(
+            var exception = assertThrows(
                     BookingException.class,
-                    () -> bookingServiceImpl.create(BookingFixture.createStartOutOfRangeBookingRequestDto, 1L));
+                    () -> service.create(createStartOutOfRangeBookingRequestDto, 1L));
 
-            Assertions.assertEquals("Provided provided time slot is invalid", exception.getMessage());
+            assertEquals("Provided provided time slot is invalid", exception.getMessage());
         }
 
         @Test
         public void testExceptionIsThrownWhenEndTimeIsOutOfRange() {
 
             when(scheduleConfigurationServiceImpl.getScheduleConfiguration()).thenReturn(
-                    BookingFixture.configuration
+                    configuration
             );
 
             when(customerRepository.findById(any())).thenReturn(
-                    Optional.of(BookingFixture.customer)
+                    Optional.of(customer)
             );
 
-            var exception = Assertions.assertThrows(
+            var exception = assertThrows(
                     BookingException.class,
-                    () -> bookingServiceImpl.create(BookingFixture.createEndOutOfRangeBookingRequestDto, 1L));
+                    () -> service.create(createEndOutOfRangeBookingRequestDto, 1L));
 
-            Assertions.assertEquals("Provided provided time slot is invalid", exception.getMessage());
+            assertEquals("Provided provided time slot is invalid", exception.getMessage());
         }
 
         @Test
         public void testExceptionIsThrownWhenCleaningProfessionalsBelongToDifferentVehicle() {
 
             when(scheduleConfigurationServiceImpl.getScheduleConfiguration()).thenReturn(
-                    BookingFixture.configuration
+                    configuration
             );
 
             when(customerRepository.findById(any())).thenReturn(
-                    Optional.of(BookingFixture.customer)
+                    Optional.of(customer)
             );
 
             when(cleaningProfessionalRepository.findByIdIn(any())).thenReturn(
                     List.of(
-                            BookingFixture.cleaningProfessional,
-                            BookingFixture.cleaningProfessional2
+                            cleaningProfessional,
+                            cleaningProfessional2
                     )
             );
 
-            var exception = Assertions.assertThrows(
+            var exception = assertThrows(
                     BookingException.class,
-                    () -> bookingServiceImpl.create(BookingFixture.createEndOutOfRangeBookingRequestDto, 1L));
+                    () -> service.create(createEndOutOfRangeBookingRequestDto, 1L));
 
-            Assertions.assertEquals("Provided cleaning professionals are not valid for this booking", exception.getMessage());
+            assertEquals("Provided cleaning professionals are not valid for this booking", exception.getMessage());
         }
 
         @Test
         public void testExceptionIsThrownWhenSlotIsNotAvailable() {
 
             when(scheduleConfigurationServiceImpl.getScheduleConfiguration()).thenReturn(
-                    BookingFixture.configuration
+                    configuration
             );
 
             when(customerRepository.findById(any())).thenReturn(
-                    Optional.of(BookingFixture.customer)
+                    Optional.of(customer)
             );
 
             when(bookedSlotRepository.findBookedCleanerSlotsInDateTimeRange(any(), any(),
                     any(), any(), anyList(), any())).thenReturn(
-                    List.of(BookingFixture.bookedSlots)
+                    List.of(bookedSlot)
             );
 
-            var exception = Assertions.assertThrows(
+            var exception = assertThrows(
                     BookingException.class,
-                    () -> bookingServiceImpl.create(BookingFixture.createBookingRequestDto, 1L));
+                    () -> service.create(createBookingRequestDto, 1L));
 
-            Assertions.assertEquals("Slot not available", exception.getMessage());
+            assertEquals("Slot not available", exception.getMessage());
         }
     }
 
@@ -243,11 +245,11 @@ class BookingServiceImplTest {
         public void testBookingIsUpdatedSuccessfully() {
 
             when(scheduleConfigurationServiceImpl.getScheduleConfiguration()).thenReturn(
-                    BookingFixture.configuration
+                    configuration
             );
 
             when(bookingRepository.findFirstByIdAndCustomerId(any(), any())).thenReturn(
-                    Optional.of(BookingFixture.booking)
+                    Optional.of(booking)
             );
 
             when(bookedSlotRepository.findBookedCleanerSlotsInDateTimeRange(any(), any(),
@@ -256,51 +258,51 @@ class BookingServiceImplTest {
             );
 
             when(bookedSlotRepository.findByBookingId(any())).thenReturn(
-                    List.of(BookingFixture.bookedSlots)
+                    List.of(bookedSlot)
             );
 
 
-            var result = bookingServiceImpl.update(BookingFixture.updateBookingRequestDto, 1L, 1L);
+            var result = service.update(updateBookingRequestDto, 1L, 1L);
 
             verify(bookingRepository, times(1)).save(bookingCaptor.capture());
             verify(bookedSlotRepository, times(1)).saveAll(bookedSlotsCaptor.capture());
 
-            Assertions.assertEquals(LocalDate.of(2024, 7, 10), result.date());
-            Assertions.assertEquals("09:30", result.startTime());
-            Assertions.assertEquals("11:30", result.endTime());
+            assertEquals(LocalDate.of(2024, 7, 10), result.date());
+            assertEquals("09:30", result.startTime());
+            assertEquals("11:30", result.endTime());
 
             var createdBooking = bookingCaptor.getValue();
-            Assertions.assertEquals(BookingFixture.date, createdBooking.getDate());
-            Assertions.assertEquals(BookingStatus.PENDING, createdBooking.getStatus());
-            Assertions.assertEquals(1, createdBooking.getCleaningProfessionals().size());
-            Assertions.assertEquals(LocalTime.of(9, 30), createdBooking.getStartTime());
-            Assertions.assertEquals(LocalTime.of(11, 30), createdBooking.getEndTime());
+            assertEquals(date, createdBooking.getDate());
+            assertEquals(BookingStatus.PENDING, createdBooking.getStatus());
+            assertEquals(1, createdBooking.getCleaningProfessionals().size());
+            assertEquals(LocalTime.of(9, 30), createdBooking.getStartTime());
+            assertEquals(LocalTime.of(11, 30), createdBooking.getEndTime());
 
             var createdBookedSlot = bookedSlotsCaptor.getValue().get(0);
-            Assertions.assertEquals(BookingFixture.date, createdBookedSlot.getDate());
-            Assertions.assertEquals(LocalTime.of(9, 30), createdBookedSlot.getStartTime());
-            Assertions.assertEquals(LocalTime.of(12, 0), createdBookedSlot.getEndTime());
-            Assertions.assertEquals("test2@example.com", createdBookedSlot.getCleaningProfessional().getEmail());
+            assertEquals(date, createdBookedSlot.getDate());
+            assertEquals(LocalTime.of(9, 30), createdBookedSlot.getStartTime());
+            assertEquals(LocalTime.of(12, 0), createdBookedSlot.getEndTime());
+            assertEquals("test2@example.com", createdBookedSlot.getCleaningProfessional().getEmail());
         }
 
         @Test
         public void testExceptionIsThrownWhenInputDateIsHoliday() {
 
             when(scheduleConfigurationServiceImpl.getScheduleConfiguration()).thenReturn(
-                    BookingFixture.configuration
+                    configuration
             );
 
             when(bookingRepository.findFirstByIdAndCustomerId(any(), any())).thenReturn(
-                    Optional.of(BookingFixture.booking)
+                    Optional.of(booking)
             );
 
             when(scheduleConfigurationServiceImpl.isHoliday(any(), any())).thenCallRealMethod();
 
-            var exception = Assertions.assertThrows(
+            var exception = assertThrows(
                     HolidayException.class,
-                    () -> bookingServiceImpl.update(BookingFixture.updateHolidayBookingRequestDto, 1L, 1L));
+                    () -> service.update(updateHolidayBookingRequestDto, 1L, 1L));
 
-            Assertions.assertEquals("Booking can't be created on a holiday", exception.getMessage());
+            assertEquals("Booking can't be created on a holiday", exception.getMessage());
         }
 
         @Test
@@ -310,70 +312,70 @@ class BookingServiceImplTest {
                     Optional.empty()
             );
 
-            var exception = Assertions.assertThrows(
+            var exception = assertThrows(
                     BookingException.class,
-                    () -> bookingServiceImpl.update(BookingFixture.updateBookingRequestDto, 1L, 1L));
+                    () -> service.update(updateBookingRequestDto, 1L, 1L));
 
-            Assertions.assertEquals("Booking doesn't exist", exception.getMessage());
+            assertEquals("Booking doesn't exist", exception.getMessage());
         }
 
         @Test
         public void testExceptionIsThrownWhenStartTimeIsOutOfRange() {
 
             when(scheduleConfigurationServiceImpl.getScheduleConfiguration()).thenReturn(
-                    BookingFixture.configuration
+                    configuration
             );
 
             when(bookingRepository.findFirstByIdAndCustomerId(any(), any())).thenReturn(
-                    Optional.of(BookingFixture.booking)
+                    Optional.of(booking)
             );
 
-            var exception = Assertions.assertThrows(
+            var exception = assertThrows(
                     BookingException.class,
-                    () -> bookingServiceImpl.update(BookingFixture.updateStartOutOfRangeBookingRequestDto, 1L, 1L));
+                    () -> service.update(updateStartOutOfRangeBookingRequestDto, 1L, 1L));
 
-            Assertions.assertEquals("Provided provided time slot is invalid", exception.getMessage());
+            assertEquals("Provided provided time slot is invalid", exception.getMessage());
         }
 
         @Test
         public void testExceptionIsThrownWhenEndTimeIsOutOfRange() {
 
             when(scheduleConfigurationServiceImpl.getScheduleConfiguration()).thenReturn(
-                    BookingFixture.configuration
+                    configuration
             );
 
             when(bookingRepository.findFirstByIdAndCustomerId(any(), any())).thenReturn(
-                    Optional.of(BookingFixture.booking)
+                    Optional.of(booking)
             );
 
-            var exception = Assertions.assertThrows(
+            var exception = assertThrows(
                     BookingException.class,
-                    () -> bookingServiceImpl.update(BookingFixture.updateEndOutOfRangeBookingRequestDto, 1L, 1L));
+                    () -> service.update(updateEndOutOfRangeBookingRequestDto, 1L, 1L));
 
-            Assertions.assertEquals("Provided provided time slot is invalid", exception.getMessage());
+            assertEquals("Provided provided time slot is invalid", exception.getMessage());
         }
 
         @Test
         public void testExceptionIsThrownWhenSlotIsNotAvailable() {
 
             when(scheduleConfigurationServiceImpl.getScheduleConfiguration()).thenReturn(
-                    BookingFixture.configuration
+                    configuration
             );
 
             when(bookingRepository.findFirstByIdAndCustomerId(any(), any())).thenReturn(
-                    Optional.of(BookingFixture.booking)
+                    Optional.of(booking)
             );
 
             when(bookedSlotRepository.findBookedCleanerSlotsInDateTimeRange(any(), any(),
                     any(), any(), anyList(), any())).thenReturn(
-                    List.of(BookingFixture.bookedSlots)
+                    List.of(bookedSlot)
             );
 
-            var exception = Assertions.assertThrows(
+            var exception = assertThrows(
                     BookingException.class,
-                    () -> bookingServiceImpl.update(BookingFixture.updateBookingRequestDto, 1L, 1L));
+                    () -> service.update(updateBookingRequestDto, 1L, 1L));
 
-            Assertions.assertEquals("Slot not available", exception.getMessage());
+            assertEquals("Slot not available", exception.getMessage());
         }
     }
 }

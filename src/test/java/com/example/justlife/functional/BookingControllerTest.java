@@ -11,6 +11,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static com.example.justlife.fixture.BookingFixture.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -34,12 +35,12 @@ class BookingControllerTest {
     @Test
     void shouldCreateBooking() throws Exception {
         when(service.create(any(),any())).thenReturn(
-                BookingFixture.createBookingResponseDto
+                createBookingResponseDto
         );
 
         this.mockMvc.perform(post("/api/v1/bookings")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(BookingFixture.createBookingRequestDto))
+                        .content(objectMapper.writeValueAsString(createBookingRequestDto))
                 )
                 .andDo(print())
                 .andExpect(status().isCreated())
@@ -47,14 +48,29 @@ class BookingControllerTest {
     }
 
     @Test
-    void shouldNotCreateBookingWhenParamsAreInvalid() throws Exception {
+    void shouldNotCreateBookingWhenCleaningProfessionalsAreMoreThanThree() throws Exception {
         when(service.create(any(),any())).thenReturn(
-                BookingFixture.createBookingResponseDto
+                createBookingResponseDto
         );
 
         this.mockMvc.perform(post("/api/v1/bookings")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(BookingFixture.createInvalidParamsBookingRequestDto))
+                        .content(objectMapper.writeValueAsString(createBookingRequestDtoWithFourCleaningProfessionals))
+                )
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").exists());
+    }
+
+    @Test
+    void shouldNotCreateBookingWhenParamsAreInvalid() throws Exception {
+        when(service.create(any(),any())).thenReturn(
+                createBookingResponseDto
+        );
+
+        this.mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createInvalidParamsBookingRequestDto))
                 )
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -64,12 +80,12 @@ class BookingControllerTest {
     @Test
     void shouldUpdateBooking() throws Exception {
         when(service.update(any(),any(), any())).thenReturn(
-                BookingFixture.updateBookingResponseDto
+                updateBookingResponseDto
         );
 
         this.mockMvc.perform(put("/api/v1/bookings/100")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(BookingFixture.updateBookingRequestDto))
+                        .content(objectMapper.writeValueAsString(updateBookingRequestDto))
                 )
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -80,12 +96,12 @@ class BookingControllerTest {
     @Test
     void shouldNotUpdateBookingWhenParamsAreInvalid() throws Exception {
         when(service.update(any(),any(), any())).thenReturn(
-                BookingFixture.updateBookingResponseDto
+                updateBookingResponseDto
         );
 
         this.mockMvc.perform(put("/api/v1/bookings/100")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(BookingFixture.updateInvalidParamsBookingRequestDto))
+                        .content(objectMapper.writeValueAsString(updateInvalidParamsBookingRequestDto))
                 )
                 .andDo(print())
                 .andExpect(status().isBadRequest())
