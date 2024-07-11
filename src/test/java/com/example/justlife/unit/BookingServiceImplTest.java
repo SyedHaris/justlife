@@ -169,7 +169,7 @@ class BookingServiceImplTest {
                     BookingException.class,
                     () -> service.create(createStartOutOfRangeBookingRequestDto, 1L));
 
-            assertEquals("Provided provided time slot is invalid", exception.getMessage());
+            assertEquals("Provided time slot is invalid", exception.getMessage());
         }
 
         @Test
@@ -187,7 +187,7 @@ class BookingServiceImplTest {
                     BookingException.class,
                     () -> service.create(createEndOutOfRangeBookingRequestDto, 1L));
 
-            assertEquals("Provided provided time slot is invalid", exception.getMessage());
+            assertEquals("Provided time slot is invalid", exception.getMessage());
         }
 
         @Test
@@ -334,7 +334,7 @@ class BookingServiceImplTest {
                     BookingException.class,
                     () -> service.update(updateStartOutOfRangeBookingRequestDto, 1L, 1L));
 
-            assertEquals("Provided provided time slot is invalid", exception.getMessage());
+            assertEquals("Provided time slot is invalid", exception.getMessage());
         }
 
         @Test
@@ -352,7 +352,7 @@ class BookingServiceImplTest {
                     BookingException.class,
                     () -> service.update(updateEndOutOfRangeBookingRequestDto, 1L, 1L));
 
-            assertEquals("Provided provided time slot is invalid", exception.getMessage());
+            assertEquals("Provided time slot is invalid", exception.getMessage());
         }
 
         @Test

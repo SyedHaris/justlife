@@ -1,7 +1,7 @@
 ### Tech Stack
 - Java 17
+- Spring Boot 3
 - Mysql 8
-- Spting Boot 3
 
 ### Setup
 Set the following application properties according to the environemnt:

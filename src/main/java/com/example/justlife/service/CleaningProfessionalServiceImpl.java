@@ -56,6 +56,7 @@ public class CleaningProfessionalServiceImpl implements  CleaningProfessionalSer
                                                    .toList();
             var cleaningProfessionals = cleaningProfessionalRepository.findByIdNotIn(cleanerProfessionalIds, pageable);
 
+            // Get cleaning professionals without available slots
             cleaningProfessionals
                     .forEach(cp -> {
                         cleaningProfessionalsResponse.add(
@@ -70,7 +71,7 @@ public class CleaningProfessionalServiceImpl implements  CleaningProfessionalSer
             var cleaningProfessionals = cleaningProfessionalRepository.findAll(
                     pageable)
                     .getContent();
-            // Calculate available slots
+            // Get cleaning professionals with available slots
             cleaningProfessionals
                     .forEach(cp -> {
                         cleaningProfessionalsResponse.add(

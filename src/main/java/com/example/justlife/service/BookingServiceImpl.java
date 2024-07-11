@@ -28,6 +28,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static com.example.justlife.exception.BookingException.*;
+
 @Service
 public class BookingServiceImpl implements BookingService {
     private final ScheduleConfigurationService scheduleConfigurationService;
@@ -53,7 +55,7 @@ public class BookingServiceImpl implements BookingService {
                                            Long customerId) {
         var scheduleConfiguration = scheduleConfigurationService.getScheduleConfiguration();
         var customer = customerRepository.findById(customerId).orElseThrow(
-                () -> new CustomerNotFoundException("Customer doesn't exist")
+                CustomerNotFoundException::new
         );
 
         // Check not holiday
@@ -63,18 +65,18 @@ public class BookingServiceImpl implements BookingService {
         // Check all cleaning professionals belong to the same vehicle
         var cleaningProfessionals = cleaningProfessionalRepository.findByIdIn(requestDto.cleaningProfessionals());
         if (cleaningProfessionals.size() > 1 && isVehicleNotValid(cleaningProfessionals))
-            throw new BookingException("Provided cleaning professionals are not valid for this booking");
+            throw new BookingException(CLEANING_PROFESSIONALS_INVALID);
 
         // start time and end time are not out of range
         var startTime = helper.convertStringToLocalTime(requestDto.startTime());
         var endTime = helper.calculateEndTimeFromDurationAndStartTime(startTime, requestDto.duration());
         if (isTimeOutOfRange(startTime, endTime, scheduleConfiguration))
-            throw new BookingException("Provided provided time slot is invalid");
+            throw new BookingException(TIME_SLOT_NOT_VALID);
 
         // Check slot is not in booked slots
         if (getBookedSlots(requestDto.date(), startTime, endTime,
                                 requestDto.cleaningProfessionals(), null).size() > 0)
-            throw new BookingException("Slot not available");
+            throw new BookingException(SLOT_NOT_AVAILABLE);
 
         // Create booking
         var booking = saveBooking(requestDto, cleaningProfessionals, startTime, endTime, customer);
@@ -88,7 +90,7 @@ public class BookingServiceImpl implements BookingService {
     public UpdateBookingResponseDto update(UpdateBookingRequestDto requestDto, Long customerId, Long bookingId) {
         // Check booking exists
         var booking = bookingRepository.findFirstByIdAndCustomerId(bookingId, customerId)
-                                       .orElseThrow(() -> new BookingException("Booking doesn't exist"));
+                                       .orElseThrow(BookingException::new);
         var scheduleConfiguration = scheduleConfigurationService.getScheduleConfiguration();
 
         // Check not holiday
@@ -99,7 +101,7 @@ public class BookingServiceImpl implements BookingService {
         var startTime = helper.convertStringToLocalTime(requestDto.startTime());
         var endTime = helper.calculateEndTimeFromDurationAndStartTime(startTime, requestDto.duration());
         if (isTimeOutOfRange(startTime, endTime, scheduleConfiguration))
-            throw new BookingException("Provided provided time slot is invalid");
+            throw new BookingException(TIME_SLOT_NOT_VALID);
 
         // Check available slot excluding current booking
         var cleaningProfessionalIds = booking.getCleaningProfessionals()
@@ -108,7 +110,7 @@ public class BookingServiceImpl implements BookingService {
                                              .toList();
         if (getBookedSlots(requestDto.date(), startTime, endTime,
                                 cleaningProfessionalIds, booking.getId()).size() > 0)
-            throw new BookingException("Slot not available");
+            throw new BookingException(SLOT_NOT_AVAILABLE);
 
         // Update booking
         booking.setDate(requestDto.date());
