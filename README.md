@@ -4,7 +4,7 @@
 - Mysql 8
 
 ### Setup
-Set the following application properties according to the environemnt:
+Set the following properties according to the environment in ``src/main/resources/application.properties``:
 
 ```
 server.port=8087
