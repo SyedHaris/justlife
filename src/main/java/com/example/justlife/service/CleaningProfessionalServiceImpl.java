@@ -89,7 +89,7 @@ public class CleaningProfessionalServiceImpl implements  CleaningProfessionalSer
         var availableSlots = new ArrayList<String>();
         var bookedSlots = bookedSlotRepository.findByCleaningProfessionalIdAndDate(cleaningProfessional.getId(), date);
         if (bookedSlots.isEmpty())
-            return Collections.singletonList(scheduleConfiguration.getStartTime() + ":" + scheduleConfiguration.getEndTime());
+            return Collections.singletonList(scheduleConfiguration.getStartTime() + "-" + scheduleConfiguration.getEndTime());
         var previousEndTime = scheduleConfiguration.getStartTime();
         var scheduleEndTime = scheduleConfiguration.getEndTime();
         for (BookedSlot bks : bookedSlots) {
