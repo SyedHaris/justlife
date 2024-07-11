@@ -17,6 +17,7 @@ spring.liquibase.password=root
 ```
 
 This project uses liquibase for database migrations. When the application is started it will automatically run migrations and seed data.
+Seed data can be found in **src/main/resources/seed/data.sql**
 
 ### API Documentation
 This project uses Swagger for API documentation. When application is started, the documentation will be available on the following path:
