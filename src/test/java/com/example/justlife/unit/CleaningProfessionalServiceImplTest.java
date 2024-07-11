@@ -116,8 +116,8 @@ class CleaningProfessionalServiceImplTest {
             assertEquals(2, result.size());
             assertNotNull(result.get(0).availableSlots());
             assertNotNull(result.get(1).availableSlots());
-            assertEquals("08:00-09:00,11:30-16:00,20:30-22:00", String.join(",", result.get(0).availableSlots()));
-            assertEquals("08:00-09:00,11:30-16:00,20:30-22:00", String.join(",", result.get(1).availableSlots()));
+            assertEquals("08:00-08:30,11:30-15:30,20:30-22:00", String.join(",", result.get(0).availableSlots()));
+            assertEquals("08:00-08:30,11:30-15:30,20:30-22:00", String.join(",", result.get(1).availableSlots()));
         }
     }
 }
